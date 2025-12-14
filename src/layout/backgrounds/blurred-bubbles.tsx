@@ -14,6 +14,49 @@ function tint(color: string, factor: number) {
 	return `rgb(${clamp(r * factor)}, ${clamp(g * factor)}, ${clamp(b * factor)})`
 }
 
+// Convert hex/rgb string to HSL once to make per-frame hue shifts cheap
+function rgbToHslTuple(color: string): [number, number, number] | null {
+	let r = 0,
+		g = 0,
+		b = 0
+	if (color.startsWith('#') && color.length === 7) {
+		r = parseInt(color.slice(1, 3), 16)
+		g = parseInt(color.slice(3, 5), 16)
+		b = parseInt(color.slice(5, 7), 16)
+	} else if (color.startsWith('rgb')) {
+		const nums = color.match(/([\d\.]+)/g)?.map(Number) || []
+		;[r, g, b] = nums
+	} else {
+		return null
+	}
+	r /= 255
+	g /= 255
+	b /= 255
+	const max = Math.max(r, g, b)
+	const min = Math.min(r, g, b)
+	let h = 0,
+		s = 0,
+		l = (max + min) / 2
+	if (max !== min) {
+		const d = max - min
+		s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
+		switch (max) {
+			case r:
+				h = (g - b) / d + (g < b ? 6 : 0)
+				break
+			case g:
+				h = (b - r) / d + 2
+				break
+			case b:
+				h = (r - g) / d + 4
+		}
+		h /= 6
+	}
+	return [h * 360, s * 100, l * 100]
+}
+
+const hslToRgbString = (h: number, s: number, l: number) => `hsl(${h.toFixed(1)}, ${s.toFixed(1)}%, ${l.toFixed(1)}%)`
+
 /**
  * Blurred Floating Circles Background
  * - Circles spawn with blue-noise-ish spacing
@@ -22,10 +65,10 @@ function tint(color: string, factor: number) {
  * - Constrained to bottom band (e.g. 55%–100% height)
  */
 export default function BlurredBubblesBackground({
-	count = 5,
+	count = 8,
 	colors = siteContent.backgroundColors,
 	minRadius = 120,
-	maxRadius = 220,
+	maxRadius = 460,
 	_bottomBandStart = 0,
 	speed = 0.55,
 	noiseScale = 0.0007,
@@ -33,7 +76,13 @@ export default function BlurredBubblesBackground({
 	targetFps = 16,
 	debugFps = false,
 	startDelayMs = 800,
-	regenerateKey = 0
+	regenerateKey = 0,
+	colorShiftSeconds = 15,
+	radiusPulseSeconds = 18,
+	radiusPulseScale = 0.18,
+	radiusMin = 120,
+	radiusMax = 460,
+	colorShiftDegrees = 30
 }) {
 	const ref = useRef<HTMLCanvasElement>(null)
 	const noise = useRef(makeNoise2D())
@@ -121,6 +170,15 @@ export default function BlurredBubblesBackground({
 			x: number
 			y: number
 			r: number
+			rBase: number
+			rAmp: number
+			rPeriodFactor: number
+			sBase: number
+			lBase: number
+			hBase: number
+			hJitterDeg: number
+			hueAmpDeg: number
+			huePeriodFactor: number
 			color: string
 			vx: number
 			vy: number
@@ -132,12 +190,12 @@ export default function BlurredBubblesBackground({
 			homeX: number
 			homeY: number
 		}[] = []
-		const minDist = Math.max(minRadius * 0.5, 80)
+		const minDist = Math.max(minRadius * 0.7, 120)
 		const maxTries = 5000
 		let tries = 0
 		while (bubbles.length < count && tries < maxTries) {
 			tries++
-				const r = rand(minRadius, maxRadius)
+			const r = rand(minRadius, maxRadius)
 			const x = rand(r * 0.6, width - r * 0.6)
 			const y = rand(r * 0.6, height - r * 0.6)
 			let ok = true
@@ -151,13 +209,29 @@ export default function BlurredBubblesBackground({
 			}
 			if (ok) {
 				const baseColor = colors[bubbles.length % colors.length | 0]
-				const color = tint(baseColor, rand(0.72, 1.18))
+				const tinted = tint(baseColor, rand(0.72, 1.18))
+				const hsl = rgbToHslTuple(tinted)
+				const hueAmpDeg = rand(colorShiftDegrees * 0.55, colorShiftDegrees * 1.25)
+				const huePeriodFactor = rand(0.75, 1.35)
+				const hJitterDeg = rand(-35, 35)
+				const rBase = r
+				const rAmp = r * rand(radiusPulseScale * 0.4, radiusPulseScale * 1.1)
+				const rPeriodFactor = rand(0.75, 1.3)
 
 				bubbles.push({
 					x,
 					y,
 					r,
-					color,
+					rBase,
+					rAmp,
+					rPeriodFactor,
+					sBase: hsl ? hsl[1] : 70,
+					lBase: hsl ? hsl[2] : 60,
+					hBase: hsl ? hsl[0] : 200,
+					hJitterDeg,
+					hueAmpDeg,
+					huePeriodFactor,
+					color: tinted,
 					vx: rand(-0.2, 0.2),
 					vy: rand(-0.2, 0.2),
 					jitter: rand(0.7, 1.3),
@@ -212,12 +286,12 @@ export default function BlurredBubblesBackground({
 						const dx = b.x - o.x
 						const dy = b.y - o.y
 						const d2 = dx * dx + dy * dy
-						const minD = (b.r + o.r) * 0.55
+						const minD = (b.r + o.r) * 0.65
 						if (d2 < minD * minD && d2 > 0.001) {
 							const d = Math.sqrt(d2)
 							const push = (minD - d) / minD // 0..1
-							sx += (dx / d) * push * 1.35
-							sy += (dy / d) * push * 1.35
+							sx += (dx / d) * push * 1.8
+							sy += (dy / d) * push * 1.8
 						}
 					}
 
@@ -285,8 +359,20 @@ export default function BlurredBubblesBackground({
 				ctx.filter = `blur(${b.blur}px)`
 				ctx.globalAlpha = 0.55
 				ctx.beginPath()
-				ctx.fillStyle = b.color
-				ctx.ellipse(0, 0, b.r * b.aspect, b.r, 0, 0, Math.PI * 2)
+				const t = performance.now()
+				// Color animation
+				const huePeriodMs = colorShiftSeconds * 1000 * b.huePeriodFactor
+				const huePhase = huePeriodMs > 0 ? ((t + b.noisePhase * 1000) / huePeriodMs) % 1 : 0
+				const hueShift = Math.sin(huePhase * Math.PI * 2) * b.hueAmpDeg
+				const hue = (b.hBase + b.hJitterDeg + hueShift + 360) % 360
+				ctx.fillStyle = hslToRgbString(hue, b.sBase, b.lBase)
+
+				// Radius pulsation
+				const rPeriodMs = radiusPulseSeconds * 1000 * b.rPeriodFactor
+				const rPhase = rPeriodMs > 0 ? ((t + b.noisePhase * 1000) / rPeriodMs) % 1 : 0
+				const rPulse = Math.sin(rPhase * Math.PI * 2)
+				const rNow = Math.min(radiusMax, Math.max(radiusMin, b.rBase + b.rAmp * rPulse))
+				ctx.ellipse(0, 0, rNow * b.aspect, rNow, 0, 0, Math.PI * 2)
 				ctx.fill()
 				ctx.restore()
 			}
