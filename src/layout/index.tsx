@@ -15,6 +15,7 @@ export default function Layout({ children }: PropsWithChildren) {
 	const { siteContent, regenerateKey } = useConfigStore()
 	const { maxSM, init } = useSize()
 
+
 	const backgroundImages = (siteContent.backgroundImages ?? []) as Array<{ id: string; url: string }>
 	const currentBackgroundImageId = siteContent.currentBackgroundImageId
 	const currentBackgroundImage =

@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import Layout from '@/layout'
 import Head from '@/layout/head'
 import siteContent from '@/config/site-content.json'
+import InitialLoader from '@/components/initial-loader'
 
 const {
 	meta: { title, description },
@@ -51,6 +52,27 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 					}}
 				/>
 
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `
+					(function() {
+						try {
+							var key = 'initial-loader-last-shown-v1';
+							var now = Date.now();
+							var last = Number(localStorage.getItem(key) || 0);
+							if (!last || now - last > 1800000) {
+								document.documentElement.classList.add('initial-loader-active');
+								localStorage.setItem(key, String(now));
+							}
+						} catch (e) {
+							/* ignore */
+						}
+					})();
+		      `
+					}}
+				/>
+
+				<InitialLoader />
 				<Layout>{children}</Layout>
 			</body>
 		</html>

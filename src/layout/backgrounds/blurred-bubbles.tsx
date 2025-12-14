@@ -3,6 +3,17 @@ import { motion } from 'motion/react'
 import siteContent from '@/config/site-content.json'
 import { makeNoise2D, rand } from './utils'
 
+function tint(color: string, factor: number) {
+	if (!color) return color
+	const hex = color.replace('#', '')
+	if (hex.length !== 6) return color
+	const r = parseInt(hex.slice(0, 2), 16)
+	const g = parseInt(hex.slice(2, 4), 16)
+	const b = parseInt(hex.slice(4, 6), 16)
+	const clamp = (v: number) => Math.max(0, Math.min(255, v))
+	return `rgb(${clamp(r * factor)}, ${clamp(g * factor)}, ${clamp(b * factor)})`
+}
+
 /**
  * Blurred Floating Circles Background
  * - Circles spawn with blue-noise-ish spacing
@@ -11,17 +22,17 @@ import { makeNoise2D, rand } from './utils'
  * - Constrained to bottom band (e.g. 55%–100% height)
  */
 export default function BlurredBubblesBackground({
-	count = 6,
+	count = 5,
 	colors = siteContent.backgroundColors,
-	minRadius = 250,
-	maxRadius = 400,
-	bottomBandStart = 0.8,
-	speed = 0.12,
-	noiseScale = 0.0008,
-	noiseTimeScale = 0.00015,
-	targetFps = 6,
+	minRadius = 120,
+	maxRadius = 220,
+	_bottomBandStart = 0,
+	speed = 0.55,
+	noiseScale = 0.0007,
+	noiseTimeScale = 0.001,
+	targetFps = 16,
 	debugFps = false,
-	startDelayMs = 1500,
+	startDelayMs = 800,
 	regenerateKey = 0
 }) {
 	const ref = useRef<HTMLCanvasElement>(null)
@@ -70,7 +81,7 @@ export default function BlurredBubblesBackground({
 		ro.observe(canvas)
 
 		// --- Occupancy grid (for coverage guidance) ---
-		const gridCell = 80 // px
+		const gridCell = 100 // px
 		let gridCols = 0,
 			gridRows = 0,
 			grid: Float32Array
@@ -81,7 +92,7 @@ export default function BlurredBubblesBackground({
 			grid = new Float32Array(gridCols * gridRows)
 		}
 		function stampOccupancy(x: number, y: number, r: number) {
-			// Add a small amount to nearby cells so paths get balanced over time
+			// Add a light amount to nearby cells so paths get balanced over time
 			const c0 = Math.floor((x - r) / gridCell)
 			const c1 = Math.floor((x + r) / gridCell)
 			const r0 = Math.floor((y - r) / gridCell)
@@ -90,41 +101,45 @@ export default function BlurredBubblesBackground({
 				for (let cx = c0; cx <= c1; cx++) {
 					if (cx < 0 || cy < 0 || cx >= gridCols || cy >= gridRows) continue
 					const idx = cy * gridCols + cx
-					grid[idx] += 0.5 // weight
+					grid[idx] += 0.35 // lighter weight to avoid directional bias
 				}
 			}
 		}
 		function lowestOccupancyTarget() {
-			// Find the lowest occupancy cell inside the bottom band
-			const startRow = Math.floor(gridRows * bottomBandStart)
-			let bestIdx = startRow * gridCols
-			let bestVal = Infinity
-			for (let cy = startRow; cy < gridRows; cy++) {
-				for (let cx = 0; cx < gridCols; cx++) {
-					const idx = cy * gridCols + cx
-					const v = grid[idx]
-					if (v < bestVal) {
-						bestVal = v
-						bestIdx = idx
-					}
-				}
-			}
-			const ty = (Math.floor(bestIdx / gridCols) + 0.5) * gridCell
-			const tx = ((bestIdx % gridCols) + 0.5) * gridCell
+			// Gentle pull toward center with wider oscillation to cover right侧
+			const t = performance.now()
+			const wobbleX = Math.sin(t * 0.00025) * 0.12 // moderate shift
+			const wobbleY = Math.cos(t * 0.00018) * 0.04 // subtle vertical drift
+			const tx = width * (0.5 + wobbleX)
+			const ty = height * (0.5 + wobbleY)
 			return { tx, ty }
 		}
 		allocateGrid()
 
 		// Poisson-ish initial placement to avoid clusters
-		const bubbles: { x: number; y: number; r: number; color: string; vx: number; vy: number; jitter: number; blur: number }[] = []
-		const minDist = Math.max(minRadius * 0.2, 80)
+		const bubbles: {
+			x: number
+			y: number
+			r: number
+			color: string
+			vx: number
+			vy: number
+			jitter: number
+			blur: number
+			angle: number
+			aspect: number
+			noisePhase: number
+			homeX: number
+			homeY: number
+		}[] = []
+		const minDist = Math.max(minRadius * 0.5, 80)
 		const maxTries = 5000
 		let tries = 0
 		while (bubbles.length < count && tries < maxTries) {
 			tries++
-			const r = rand(minRadius, maxRadius)
-			const x = rand(-r / 2, width + r / 2)
-			const y = rand(height * bottomBandStart, height * 1.2)
+				const r = rand(minRadius, maxRadius)
+			const x = rand(r * 0.6, width - r * 0.6)
+			const y = rand(r * 0.6, height - r * 0.6)
 			let ok = true
 			for (let b of bubbles) {
 				const dx = b.x - x
@@ -135,15 +150,23 @@ export default function BlurredBubblesBackground({
 				}
 			}
 			if (ok) {
+				const baseColor = colors[bubbles.length % colors.length | 0]
+				const color = tint(baseColor, rand(0.72, 1.18))
+
 				bubbles.push({
 					x,
 					y,
 					r,
-					color: colors[bubbles.length % colors.length | 0],
+					color,
 					vx: rand(-0.2, 0.2),
 					vy: rand(-0.2, 0.2),
-					jitter: rand(0.6, 1.2),
-					blur: rand(200, 400)
+					jitter: rand(0.7, 1.3),
+					blur: rand(60, 120),
+					angle: rand(0, Math.PI * 2),
+					aspect: rand(0.68, 1.25),
+					noisePhase: rand(0, 10000),
+					homeX: x,
+					homeY: y
 				})
 			}
 		}
@@ -159,13 +182,23 @@ export default function BlurredBubblesBackground({
 
 		function updatePhysics(t: number) {
 			const { tx, ty } = lowestOccupancyTarget()
+			let avgX = 0
+			let avgY = 0
+			for (const b of bubbles) {
+				avgX += b.x
+				avgY += b.y
+			}
+			avgX /= Math.max(1, bubbles.length)
+			avgY /= Math.max(1, bubbles.length)
+			const balanceX = ((width * 0.5 - avgX) / Math.max(width, 1)) * 0.25
+			const balanceY = ((height * 0.5 - avgY) / Math.max(height, 1)) * 0.15
 
 			// Update physics
 			for (let i = 0; i < bubbles.length; i++) {
 				const b = bubbles[i]
 
 				// 1) Flow field (smooth wandering)
-				const n = noise.current(b.x * noiseScale, b.y * noiseScale + t * noiseTimeScale)
+				const n = noise.current(b.x * noiseScale + b.noisePhase, b.y * noiseScale + t * noiseTimeScale + b.noisePhase)
 				const angle = n * Math.PI * 2
 				const fx = Math.cos(angle) * speed * b.jitter
 				const fy = Math.sin(angle) * speed * b.jitter
@@ -179,41 +212,37 @@ export default function BlurredBubblesBackground({
 						const dx = b.x - o.x
 						const dy = b.y - o.y
 						const d2 = dx * dx + dy * dy
-						const minD = (b.r + o.r) * 0.4
+						const minD = (b.r + o.r) * 0.55
 						if (d2 < minD * minD && d2 > 0.001) {
 							const d = Math.sqrt(d2)
 							const push = (minD - d) / minD // 0..1
-							sx += (dx / d) * push * 0.8
-							sy += (dy / d) * push * 0.8
+							sx += (dx / d) * push * 1.35
+							sy += (dy / d) * push * 1.35
 						}
 					}
 
-				// 3) Coverage bias (drift toward emptier cells)
+				// 3) Coverage bias (drift toward target)
 				const dxT = tx - b.x
 				const dyT = ty - b.y
 				const dT = Math.hypot(dxT, dyT) + 1e-3
-				const cx = (dxT / dT) * 0.05 // gentle
-				const cy = (dyT / dT) * 0.05
+				const cx = (dxT / dT) * 0.015 // mild centering
+				const cy = (dyT / dT) * 0.015
 
-				// 4) Vertical band constraint
-				const bandMin = height * bottomBandStart
-				const bandMax = height * 1.5
-				let bx = 0,
-					by = 0
-				if (b.y < bandMin) by += (bandMin - b.y) * 0.01
-				if (b.y > bandMax) by -= (b.y - bandMax) * 0.01
+				// 4) Home tether (keeps distribution spread)
+				const hx = (b.homeX - b.x) * 0.012
+				const hy = (b.homeY - b.y) * 0.012
 
 				// Combine forces
-				b.vx += fx + sx + cx + bx
-				b.vy += fy + sy + cy + by
+				b.vx += fx + sx + cx + balanceX + hx
+				b.vy += fy + sy + cy + balanceY + hy
 
 				// Apply damping to prevent velocity accumulation
-				const damping = 0.95
+				const damping = 0.93
 				b.vx *= damping
 				b.vy *= damping
 
 				// Velocity limits to prevent runaway motion
-				const maxVel = 2
+				const maxVel = 4
 				const vel = Math.hypot(b.vx, b.vy)
 				if (vel > maxVel) {
 					b.vx = (b.vx / vel) * maxVel
@@ -224,12 +253,25 @@ export default function BlurredBubblesBackground({
 				b.x += b.vx
 				b.y += b.vy
 
-				// Soft wrap horizontally to avoid bunching at edges
-				if (b.x < -b.r - b.blur / 3) b.x = width + b.r + b.blur / 3
-				if (b.x > width + b.r + b.blur / 3) b.x = -b.r - b.blur / 3
-
-				// Keep a little padding from exact edge vertically
-				b.y = Math.min(Math.max(b.y, bandMin - b.r * 0.25), bandMax + b.r * 0.25)
+				// Edge bounce with damping
+				const padX = b.r * 0.6
+				const padY = b.r * 0.6
+				if (b.x < padX) {
+					b.x = padX
+					b.vx = Math.abs(b.vx) * 0.85
+				}
+				if (b.x > width - padX) {
+					b.x = width - padX
+					b.vx = -Math.abs(b.vx) * 0.85
+				}
+				if (b.y < padY) {
+					b.y = padY
+					b.vy = Math.abs(b.vy) * 0.85
+				}
+				if (b.y > height - padY) {
+					b.y = height - padY
+					b.vy = -Math.abs(b.vy) * 0.85
+				}
 
 				// Occupancy stamp
 				stampOccupancy(b.x, b.y, b.r * 0.6)
@@ -238,11 +280,13 @@ export default function BlurredBubblesBackground({
 		function draw() {
 			for (const b of bubbles) {
 				ctx.save()
+				ctx.translate(b.x, b.y)
+				ctx.rotate(b.angle)
 				ctx.filter = `blur(${b.blur}px)`
-				ctx.globalAlpha = 0.8
+				ctx.globalAlpha = 0.55
 				ctx.beginPath()
 				ctx.fillStyle = b.color
-				ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2)
+				ctx.ellipse(0, 0, b.r * b.aspect, b.r, 0, 0, Math.PI * 2)
 				ctx.fill()
 				ctx.restore()
 			}
@@ -297,6 +341,8 @@ export default function BlurredBubblesBackground({
 			setTimeout(() => {
 				animRef.current = requestAnimationFrame(frame)
 			}, startDelayMs)
+		} else {
+			animRef.current = requestAnimationFrame(frame)
 		}
 
 		draw()
@@ -313,8 +359,7 @@ export default function BlurredBubblesBackground({
 			animate={{ opacity: 1 }}
 			initial={{ opacity: 0 }}
 			transition={{ duration: 1 }}
-			className='fixed inset-0 z-0 overflow-hidden'
-			style={{ filter: 'blur(50px)' }}>
+			className='fixed inset-0 z-0 overflow-hidden'>
 			<canvas ref={ref} className='h-full w-full' style={{ display: 'block' }} />
 		</motion.div>
 	)
