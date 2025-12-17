@@ -95,12 +95,24 @@ export default function BlurredBubblesBackground({
 		let width = (canvas.width = canvas.clientWidth)
 		let height = (canvas.height = canvas.clientHeight)
 
-		const DPR = Math.min(2, window.devicePixelRatio || 1)
+		const isMobile = window.matchMedia('(max-width: 640px)').matches
+		const radiusScale = isMobile ? 0.6 : 1
+		const bubbleCount = isMobile ? Math.max(3, Math.round(count * 0.55)) : count
+		const mobileMinRadius = Math.max(80, minRadius * radiusScale)
+		const mobileMaxRadius = Math.max(mobileMinRadius + 10, maxRadius * radiusScale)
+		const mobileRadiusMin = Math.max(80, radiusMin * radiusScale)
+		const mobileRadiusMax = Math.max(mobileRadiusMin + 10, radiusMax * radiusScale)
+		const localSpeed = isMobile ? speed * 0.82 : speed
+		const localNoiseScale = isMobile ? noiseScale * 0.9 : noiseScale
+		const localNoiseTimeScale = isMobile ? noiseTimeScale * 0.9 : noiseTimeScale
+		const dprCap = isMobile ? 1.4 : 2
+		const effectiveFps = Math.max(1, isMobile ? Math.min(targetFps, 14) : targetFps)
+		const launchDelay = isMobile ? Math.max(250, startDelayMs * 0.6) : startDelayMs
+
+		const DPR = Math.min(dprCap, window.devicePixelRatio || 1)
 		canvas.width = Math.floor(width * DPR)
 		canvas.height = Math.floor(height * DPR)
 		ctx.scale(DPR, DPR)
-
-		const effectiveFps = Math.max(1, targetFps)
 
 		// 1s debounce for resize observer
 		let resizeTimer: number | null = null
@@ -190,12 +202,12 @@ export default function BlurredBubblesBackground({
 			homeX: number
 			homeY: number
 		}[] = []
-		const minDist = Math.max(minRadius * 0.7, 120)
+		const minDist = Math.max(mobileMinRadius * 0.7, 80)
 		const maxTries = 5000
 		let tries = 0
-		while (bubbles.length < count && tries < maxTries) {
+		while (bubbles.length < bubbleCount && tries < maxTries) {
 			tries++
-			const r = rand(minRadius, maxRadius)
+			const r = rand(mobileMinRadius, mobileMaxRadius)
 			const x = rand(r * 0.6, width - r * 0.6)
 			const y = rand(r * 0.6, height - r * 0.6)
 			let ok = true
@@ -272,10 +284,13 @@ export default function BlurredBubblesBackground({
 				const b = bubbles[i]
 
 				// 1) Flow field (smooth wandering)
-				const n = noise.current(b.x * noiseScale + b.noisePhase, b.y * noiseScale + t * noiseTimeScale + b.noisePhase)
+				const n = noise.current(
+					b.x * localNoiseScale + b.noisePhase,
+					b.y * localNoiseScale + t * localNoiseTimeScale + b.noisePhase
+				)
 				const angle = n * Math.PI * 2
-				const fx = Math.cos(angle) * speed * b.jitter
-				const fy = Math.sin(angle) * speed * b.jitter
+				const fx = Math.cos(angle) * localSpeed * b.jitter
+				const fy = Math.sin(angle) * localSpeed * b.jitter
 
 				// 2) Separation (avoid clumping)
 				let sx = 0,
@@ -353,30 +368,70 @@ export default function BlurredBubblesBackground({
 		}
 		function draw() {
 			for (const b of bubbles) {
-				ctx.save()
-				ctx.translate(b.x, b.y)
-				ctx.rotate(b.angle)
-				ctx.filter = `blur(${b.blur}px)`
-				ctx.globalAlpha = 0.55
-				ctx.beginPath()
 				const t = performance.now()
-				// Color animation
+
+				// ---- 颜色动画 ----
 				const huePeriodMs = colorShiftSeconds * 1000 * b.huePeriodFactor
-				const huePhase = huePeriodMs > 0 ? ((t + b.noisePhase * 1000) / huePeriodMs) % 1 : 0
+				const huePhase =
+					huePeriodMs > 0 ? ((t + b.noisePhase * 1000) / huePeriodMs) % 1 : 0
 				const hueShift = Math.sin(huePhase * Math.PI * 2) * b.hueAmpDeg
 				const hue = (b.hBase + b.hJitterDeg + hueShift + 360) % 360
-				ctx.fillStyle = hslToRgbString(hue, b.sBase, b.lBase)
 
-				// Radius pulsation
+				// ---- 半径动画 ----
 				const rPeriodMs = radiusPulseSeconds * 1000 * b.rPeriodFactor
-				const rPhase = rPeriodMs > 0 ? ((t + b.noisePhase * 1000) / rPeriodMs) % 1 : 0
+				const rPhase =
+					rPeriodMs > 0 ? ((t + b.noisePhase * 1000) / rPeriodMs) % 1 : 0
 				const rPulse = Math.sin(rPhase * Math.PI * 2)
-				const rNow = Math.min(radiusMax, Math.max(radiusMin, b.rBase + b.rAmp * rPulse))
-				ctx.ellipse(0, 0, rNow * b.aspect, rNow, 0, 0, Math.PI * 2)
+				const r = Math.min(
+					mobileRadiusMax,
+					Math.max(mobileRadiusMin, b.rBase + b.rAmp * rPulse)
+				)
+
+				ctx.save()
+				ctx.translate(b.x, b.y)
+
+				const g = ctx.createRadialGradient(
+					0,
+					0,
+					0,     // 从中心就开始衰减
+					0,
+					0,
+					r
+				)
+
+				// 中心：非常轻
+				g.addColorStop(
+					0,
+					`hsla(${hue}, ${b.sBase}%, ${b.lBase}%, 0.22)`
+				)
+
+				// 中段：主体体积
+				g.addColorStop(
+					0.45,
+					`hsla(${hue}, ${b.sBase}%, ${b.lBase}%, 0.18)`
+				)
+
+				// 外围：快速消失
+				g.addColorStop(
+					0.75,
+					`hsla(${hue}, ${b.sBase}%, ${b.lBase}%, 0.08)`
+				)
+
+				// 边缘：完全透明
+				g.addColorStop(
+					1,
+					`hsla(${hue}, ${b.sBase}%, ${b.lBase}%, 0)`
+				)
+
+				ctx.fillStyle = g
+				ctx.beginPath()
+				ctx.arc(0, 0, r, 0, Math.PI * 2)
 				ctx.fill()
+
 				ctx.restore()
 			}
 		}
+
 
 		function frame(t: number) {
 			if (!ctx) return
@@ -423,10 +478,10 @@ export default function BlurredBubblesBackground({
 			animRef.current = requestAnimationFrame(frame)
 		}
 
-		if (window.innerWidth < 640) {
+		if (isMobile) {
 			setTimeout(() => {
 				animRef.current = requestAnimationFrame(frame)
-			}, startDelayMs)
+			}, launchDelay)
 		} else {
 			animRef.current = requestAnimationFrame(frame)
 		}
