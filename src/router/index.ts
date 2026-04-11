@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 // 基础路由
 import { baseRoutes } from '@/router/base.ts'
@@ -6,7 +6,7 @@ import { baseRoutes } from '@/router/base.ts'
 const routes = [...baseRoutes]
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHistory(),
   routes: routes,
 })
 

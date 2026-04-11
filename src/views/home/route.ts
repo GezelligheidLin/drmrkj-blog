@@ -1,5 +1,5 @@
 const homeRoute: RouteDefinition = {
-  path: '/home',
+  path: '/',
   name: 'Home',
   meta: {
     title: '主页',
