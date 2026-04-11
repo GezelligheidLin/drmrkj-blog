@@ -33,23 +33,26 @@
         animationDelay: ripple.delay + 's',
       }"
     ></div>
-    <div class="profile-container">
+    <div ref="profileContainerRef" class="profile-container">
       <canvas ref="avatarCanvas" width="70" height="70" style="border-radius: 50%"></canvas>
       <div gap="10px" flex flex-col items-center>
         <div text="#f0f0f0 24px" flex flex-col items-center gap="10px">
-          <div font="maoken">Hi, I'm DrmrKJ😶‍🌫️.</div>
-          <div font="maoken">{{ describe }}</div>
+          <div ref="titleRef" font="maoken">Hi, I'm DrmrKJ😶‍🌫️.</div>
+          <div ref="describeRef" font="maoken">{{ describe }}</div>
         </div>
-        <div font="maoken" text="#6f6f6f 14px">A developer who loves life and coding.</div>
+        <div ref="subtitleRef" font="maoken" text="#6f6f6f 14px">
+          A developer who loves life and coding.
+        </div>
       </div>
     </div>
-    <div absolute bottom="150px">
-      <span text="#505051">廉纤小雨池塘遍。细点看萍面。</span>
+    <div ref="bottomTextRef" absolute bottom="10%">
+      <span ref="particleTextRef" text="#505051" font="maoken">廉纤小雨池塘遍。细点看萍面。</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import gsap from 'gsap'
 import { onMounted, ref } from 'vue'
 
 import avatarImg from '@/assets/images/app/avatar.jpg'
@@ -110,6 +113,12 @@ const RAIN_CONFIG = {
 const describe = ref(`An Frontend <Developer />`)
 const containerRef = ref<HTMLElement | null>(null)
 const avatarCanvas = ref<HTMLCanvasElement | null>(null)
+const profileContainerRef = ref<HTMLElement | null>(null)
+const titleRef = ref<HTMLElement | null>(null)
+const describeRef = ref<HTMLElement | null>(null)
+const subtitleRef = ref<HTMLElement | null>(null)
+const bottomTextRef = ref<HTMLElement | null>(null)
+const particleTextRef = ref<HTMLElement | null>(null)
 const ripples = ref<Ripple[]>([])
 const raindrops = ref<Raindrop[]>([])
 let rippleId = 0
@@ -230,6 +239,108 @@ const startRain = () => {
   setInterval(rainInterval, RAIN_CONFIG.intervalSeconds * 1000)
 }
 
+// 初始化进入动画
+const initEnterAnimations = () => {
+  const timeline = gsap.timeline()
+
+  // 1. 头像从下方渐入到当前位置
+  if (avatarCanvas.value) {
+    gsap.set(avatarCanvas.value, {
+      y: 100,
+      opacity: 0,
+    })
+    timeline.to(avatarCanvas.value, {
+      y: 0,
+      opacity: 1,
+      duration: 1,
+      ease: 'power3.out',
+    })
+  }
+
+  // 2. 头像旁边的文字从左淡出到右（缓慢显示）
+  if (titleRef.value && describeRef.value && subtitleRef.value) {
+    gsap.set([titleRef.value, describeRef.value, subtitleRef.value], {
+      x: -50,
+      opacity: 0,
+    })
+    timeline.to(
+      titleRef.value,
+      {
+        x: 0,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'power2.out',
+      },
+      '-=0.5',
+    )
+    timeline.to(
+      describeRef.value,
+      {
+        x: 0,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'power2.out',
+      },
+      '-=0.9',
+    )
+    timeline.to(
+      subtitleRef.value,
+      {
+        x: 0,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'power2.out',
+      },
+      '-=0.9',
+    )
+  }
+
+  // 3. 页面下方的文字由粒子凝聚效果
+  if (particleTextRef.value) {
+    const text = particleTextRef.value.textContent || ''
+    particleTextRef.value.textContent = ''
+
+    // 将文字拆分成单个字符
+    const chars = text.split('').map((char) => {
+      const span = document.createElement('span')
+      span.textContent = char
+      span.style.display = 'inline-block'
+      span.style.opacity = '0'
+      particleTextRef.value?.appendChild(span)
+      return span
+    })
+
+    // 为每个字符添加粒子凝聚动画
+    timeline.to(
+      chars,
+      {
+        opacity: 1,
+        scale: 1,
+        x: 0,
+        y: 0,
+        duration: 0.8,
+        stagger: {
+          each: 0.05,
+          from: 'random',
+        },
+        ease: 'back.out(1.7)',
+        onStart: function () {
+          // 动画开始前设置初始状态
+          chars.forEach((char) => {
+            gsap.set(char, {
+              x: gsap.utils.random(-50, 50),
+              y: gsap.utils.random(-50, 50),
+              scale: 0,
+              opacity: 0,
+            })
+          })
+        },
+      },
+      '-=0.5',
+    )
+  }
+}
+
 onMounted(() => {
   if (!avatarCanvas.value) return
 
@@ -277,6 +388,9 @@ onMounted(() => {
 
   // 启动雨滴效果
   startRain()
+
+  // 启动进入动画
+  initEnterAnimations()
 })
 </script>
 

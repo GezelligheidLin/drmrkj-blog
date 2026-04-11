@@ -75,6 +75,7 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unused-imports": "^4.2.0",
     "eslint-plugin-vue": "~10.3.0",
+    "gsap": "^3.14.2",
     "husky": "^9.0.11",
     "jiti": "^2.4.2",
     "js-cookie": "^3.0.5",
