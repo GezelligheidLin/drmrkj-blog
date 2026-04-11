@@ -1,0 +1,27 @@
+#!/usr/bin/env sh
+
+echo "⚠️ 可能会出现错误，具体错误请前往终端输入 git commit -m 'your message' 查看详情，或者点击弹窗底部的 【显示命令输出】 查看具体信息。"
+
+# 调用公共环境检查逻辑
+# 调用公共环境检查逻辑
+if [ -f ".husky/env_check.sh" ]; then
+    . ".husky/env_check.sh"
+else
+    # 防止找不到文件导致脚本静默失效
+    . "$(dirname "$0")/env_check.sh"
+fi
+
+echo "✅ 环境检查通过: Node $(node -v)"
+echo "🔍 正在对暂存区文件执行增量检查 (lint-staged)..."
+
+# 运行检查
+if ! npx lint-staged; then
+    echo ""
+    echo "❌ [ESLint 检查失败] 你的代码中存在不符合规范的地方。"
+    echo ""
+    exit 1
+fi
+
+# 只有上面成功了，才会执行到这里
+echo "🎉 Lint 检查通过，正在提交代码..."
+exit 0
