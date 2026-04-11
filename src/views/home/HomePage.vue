@@ -128,6 +128,84 @@ let lastClickTime = 0
 // 检测移动端
 const isMobile = /Android|iPhone/i.test(navigator.userAgent)
 
+// 检测涟漪是否会波及到底部文字并产生摇晃效果
+const checkRippleTextCollision = (rippleX: number, rippleY: number) => {
+  if (!bottomTextRef.value || !containerRef.value) return
+
+  const textRect = bottomTextRef.value.getBoundingClientRect()
+  const containerRect = containerRef.value.getBoundingClientRect()
+
+  // 计算文字中心点相对于容器的位置
+  const textCenterX = textRect.left - containerRect.left + textRect.width / 2
+  const textCenterY = textRect.top - containerRect.top + textRect.height / 2
+
+  // 计算涟漪中心到文字中心的距离
+  const distance = Math.sqrt(
+    Math.pow(rippleX - textCenterX, 2) + Math.pow(rippleY - textCenterY, 2),
+  )
+
+  // 涟漪最大半径
+  const maxRippleRadius = CLICK_CONFIG.maxSize / 2
+
+  // 如果涟漪会波及到文字（距离小于涟漪最大半径 + 文字宽度的一半）
+  if (distance < maxRippleRadius + textRect.width / 2) {
+    // 计算涟漪到文字的方向向量
+    const dx = textCenterX - rippleX
+    const dy = textCenterY - rippleY
+
+    // 归一化方向向量
+    const length = Math.sqrt(dx * dx + dy * dy)
+    const normalizedDx = dx / length
+    const normalizedDy = dy / length
+
+    // 根据方向决定摇晃的幅度
+    const shakeAmountX = normalizedDx * 10 // 水平摇晃幅度
+    const shakeAmountY = normalizedDy * 10 // 垂直摇晃幅度
+
+    // 计算涟漪到达文字的延迟时间（基于距离）
+    const arrivalDelay = (distance / maxRippleRadius) * 2 // 2秒是涟漪扩散的大致时间
+
+    // 使用 GSAP 创建多次来回晃动的动画
+    const timeline = gsap.timeline({ delay: arrivalDelay })
+
+    // 第一次晃动
+    timeline.to(bottomTextRef.value, {
+      x: shakeAmountX,
+      y: shakeAmountY,
+      duration: 0.4,
+      ease: 'sine.inOut',
+    })
+    // 第二次晃动（反方向）
+    timeline.to(bottomTextRef.value, {
+      x: -shakeAmountX * 0.7,
+      y: -shakeAmountY * 0.7,
+      duration: 0.4,
+      ease: 'sine.inOut',
+    })
+    // 第三次晃动
+    timeline.to(bottomTextRef.value, {
+      x: shakeAmountX * 0.4,
+      y: shakeAmountY * 0.4,
+      duration: 0.4,
+      ease: 'sine.inOut',
+    })
+    // 第四次晃动（反方向）
+    timeline.to(bottomTextRef.value, {
+      x: -shakeAmountX * 0.2,
+      y: -shakeAmountY * 0.2,
+      duration: 0.4,
+      ease: 'sine.inOut',
+    })
+    // 最后回到原位
+    timeline.to(bottomTextRef.value, {
+      x: 0,
+      y: 0,
+      duration: 0.4,
+      ease: 'sine.inOut',
+    })
+  }
+}
+
 const createRipple = (event: MouseEvent) => {
   if (!containerRef.value) return
 
@@ -146,6 +224,9 @@ const createRipple = (event: MouseEvent) => {
   const rect = containerRef.value.getBoundingClientRect()
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
+
+  // 检测涟漪是否会波及到底部文字
+  checkRippleTextCollision(x, y)
 
   // 创建多个涟漪圆环
   for (let i = 0; i < CLICK_CONFIG.ripplesPerClick; i++) {
