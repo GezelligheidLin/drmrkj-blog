@@ -9,7 +9,7 @@ import createVitePlugins from './vite/plugins/index.js'
 export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, process.cwd())
   // const { VITE_APP_ENV, VITE_API_BASE_URL } = env
-  const base = './'
+  const base = '/'
   return {
     base,
     plugins: createVitePlugins({
