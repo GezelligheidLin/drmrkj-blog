@@ -5,6 +5,7 @@ import Components from 'unplugin-vue-components/vite'
 import type { PluginOption } from 'vite'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
+import vitePluginQRCode from '../../vite-plugin-qrcode'
 import createAutoImport from './auto-import'
 
 export default function createVitePlugins(_options: {
@@ -22,9 +23,14 @@ export default function createVitePlugins(_options: {
     }),
     UnoCSS(),
     vueDevTools({
-      launchEditor: 'code',
+      launchEditor: 'cursor',
     }),
   ]
+
+  // 开发模式下添加二维码插件
+  if (!_options.isBuild) {
+    vitePlugins.push(vitePluginQRCode())
+  }
 
   vitePlugins.push(createAutoImport())
   vitePlugins.push(

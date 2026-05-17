@@ -1,4 +1,4 @@
-import { computed, unref } from 'vue'
+import { computed, type Ref, unref } from 'vue'
 
 /**
  * 处理富文本字符串，为其中的相对路径图片添加指定前缀，并可选地移除一个已存在的前缀。

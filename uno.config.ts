@@ -91,6 +91,7 @@ function textRules(): Rule[] {
         display: '-webkit-box',
         '-webkit-line-clamp': match[1],
         '-webkit-box-orient': 'vertical',
+        'word-break': 'break-all',
       }),
     ],
   ]
@@ -179,12 +180,6 @@ function safeRules(): Rule[] {
 export default defineConfig({
   // ...UnoCSS options
   dark: 'class',
-  theme: {
-    fontFamily: {
-      muyao: ['Muyao-Softbrush', 'sans-serif'],
-      maoken: ['MaokenZhuyuanTi', 'sans-serif'],
-    },
-  },
   rules: [
     ...createSizeRules(),
     ...createFlexRules(),
@@ -199,22 +194,4 @@ export default defineConfig({
     presetAttributify({}),
     presetWind3(),
   ], // 启用属性风格],
-  preflights: [
-    {
-      getCSS: () => `
-        @font-face {
-          font-family: 'Muyao-Softbrush';
-          src: url('/src/assets/font/Muyao-Softbrush.ttf') format('truetype');
-          font-weight: normal;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'MaokenZhuyuanTi';
-          src: url('/src/assets/font/MaokenZhuyuanTi.ttf') format('truetype');
-          font-weight: normal;
-          font-style: normal;
-        }
-      `,
-    },
-  ],
 } as UserConfig)

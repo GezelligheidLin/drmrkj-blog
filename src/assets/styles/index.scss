@@ -3,9 +3,32 @@
   padding: 0;
 }
 
+html, body {
+  overflow-x: hidden;
+}
+
 body {
   transition: background-color .25s, color .25s;
   color: var(--color-text);
   background-color: var(--color-body);
   color-scheme: var(--color-scheme);
 }
+
+/* 隐藏原生滚动条 */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none;
+}
+
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* 导入主题覆盖样式 */
+@import './theme-override.css';
+
+/* 导入代码高亮主题 */
+@import './highlight-themes.css';

@@ -1,0 +1,282 @@
+/* 主题变量覆盖 - 系统性替换硬编码颜色 */
+
+/* 平滑滚动 */
+html {
+  scroll-behavior: smooth;
+}
+
+/* 全局过渡效果 */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.3s ease;
+}
+
+/* ========== 主页主题适配 ========== */
+
+/* 主页背景 - 添加渐变和纹理 */
+[data-theme='dark'] .story-page,
+[data-theme='dark'] [style*='background-color: var(--bg-primary)'] {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(135, 206, 250, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(95, 168, 211, 0.02) 0%, transparent 50%),
+    var(--bg-primary) !important;
+}
+
+[data-theme='light'] .story-page,
+[data-theme='light'] [style*='background-color: var(--bg-primary)'] {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(135, 206, 250, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%) !important;
+}
+
+/* 雨滴 - 暗色主题用浅色，亮色主题用深色 */
+[data-theme='dark'] .raindrop {
+  background: linear-gradient(to bottom, transparent, rgba(135, 206, 250, 0.8)) !important;
+}
+
+[data-theme='light'] .raindrop {
+  background: linear-gradient(to bottom, transparent, rgba(59, 130, 246, 0.6)) !important;
+}
+
+/* 波纹 - 点击产生的涟漪 */
+[data-theme='dark'] .ripple {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5) !important;
+}
+
+[data-theme='light'] .ripple {
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.08),
+    0 0 20px rgba(135, 206, 250, 0.15) !important;
+}
+
+/* 雨滴波纹 */
+[data-theme='dark'] .ripple-raindrop {
+  box-shadow: 0 0 0 1.5px rgba(135, 206, 250, 0.6) !important;
+}
+
+[data-theme='light'] .ripple-raindrop {
+  box-shadow:
+    0 0 0 1.5px rgba(0, 0, 0, 0.06),
+    0 0 15px rgba(135, 206, 250, 0.12) !important;
+}
+
+/* 光晕核心 */
+[data-theme='dark'] .glow-core {
+  background: radial-gradient(circle, rgba(135, 206, 250, 1) 0%, rgba(135, 206, 250, 0.8) 100%) !important;
+  box-shadow:
+    0 0 10px rgba(135, 206, 250, 0.8),
+    0 0 20px rgba(135, 206, 250, 0.4) !important;
+}
+
+[data-theme='light'] .glow-core {
+  background: radial-gradient(circle, rgba(59, 130, 246, 1) 0%, rgba(59, 130, 246, 0.8) 100%) !important;
+  box-shadow:
+    0 0 10px rgba(59, 130, 246, 0.6),
+    0 0 20px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* 光晕波浪 */
+[data-theme='dark'] .glow-wave {
+  border-color: rgba(135, 206, 250, 0.6) !important;
+}
+
+[data-theme='light'] .glow-wave {
+  border-color: rgba(59, 130, 246, 0.5) !important;
+}
+
+/* 头像阴影 */
+[data-theme='dark'] .avatar-canvas {
+  box-shadow: 0 8px 32px rgba(135, 206, 250, 0.3) !important;
+}
+
+[data-theme='light'] .avatar-canvas {
+  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2) !important;
+}
+
+/* ========== StoryPage 主题适配 ========== */
+
+/* 导航栏 */
+.navbar-content {
+  background: var(--navbar-bg) !important;
+  border-color: var(--border-primary) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.navbar-name {
+  color: var(--text-primary) !important;
+  transition: color 0.3s ease, transform 0.3s ease !important;
+}
+
+.navbar-name:hover {
+  color: var(--accent-primary) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* 菜单项 */
+.menu-item {
+  color: var(--text-secondary) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.menu-item:hover {
+  color: var(--text-primary) !important;
+  background: var(--card-bg) !important;
+  transform: translateY(-2px) !important;
+}
+
+.menu-item.active {
+  color: var(--accent-primary) !important;
+  background: var(--card-bg) !important;
+}
+
+.menu-icon {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.menu-item:hover .menu-icon {
+  transform: translateY(-2px) rotate(5deg) !important;
+}
+
+/* 图标按钮 */
+.icon-button {
+  background: var(--card-bg) !important;
+  border-color: var(--border-secondary) !important;
+  color: var(--text-secondary) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.icon-button:hover {
+  background: var(--card-hover) !important;
+  color: var(--text-primary) !important;
+  transform: translateY(-3px) scale(1.05) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.icon-button svg {
+  transition: transform 0.3s ease !important;
+}
+
+.icon-button:hover svg {
+  transform: scale(1.1) !important;
+}
+
+/* 时间筛选器 */
+[data-theme='dark'] .timeline-filter {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme='light'] .timeline-filter {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+.filter-title {
+  color: var(--accent-primary) !important;
+}
+
+.filter-item {
+  color: var(--text-secondary) !important;
+}
+
+.filter-item:hover {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .filter-item.active {
+  background: rgba(135, 206, 250, 0.15) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-theme='light'] .filter-item.active {
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #3b82f6 !important;
+}
+
+[data-theme='dark'] .filter-count {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme='light'] .filter-count {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme='dark'] .filter-item.active .filter-count {
+  background: rgba(135, 206, 250, 0.2) !important;
+}
+
+[data-theme='light'] .filter-item.active .filter-count {
+  background: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* 分组标题 */
+.group-title {
+  color: var(--text-primary) !important;
+}
+
+/* 故事卡片 */
+[data-theme='dark'] .story-content {
+  background: rgba(255, 255, 255, 0.02) !important;
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+[data-theme='light'] .story-content {
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='dark'] .story-card:hover .story-content {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(135, 206, 250, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(135, 206, 250, 0.1) !important;
+}
+
+[data-theme='light'] .story-card:hover .story-content {
+  background: rgba(255, 255, 255, 1) !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.1) !important;
+}
+
+.story-title {
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .story-card:hover .story-title {
+  color: #87ceeb !important;
+}
+
+[data-theme='light'] .story-card:hover .story-title {
+  color: #3b82f6 !important;
+}
+
+.story-time {
+  color: var(--text-tertiary) !important;
+}
+
+.story-description {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .story-tag {
+  color: #87ceeb !important;
+  background: rgba(135, 206, 250, 0.1) !important;
+  border-color: rgba(135, 206, 250, 0.2) !important;
+}
+
+[data-theme='light'] .story-tag {
+  color: #3b82f6 !important;
+  background: rgba(59, 130, 246, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+[data-theme='dark'] .story-card:hover .story-tag {
+  background: rgba(135, 206, 250, 0.15) !important;
+  border-color: rgba(135, 206, 250, 0.3) !important;
+}
+
+[data-theme='light'] .story-card:hover .story-tag {
+  background: rgba(59, 130, 246, 0.12) !important;
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}

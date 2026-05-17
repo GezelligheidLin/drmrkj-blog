@@ -3,6 +3,7 @@
   "include": [
     "vite.config.*",
     "vite/plugins/**/*.{ts,mts}",
+    "vite-plugin-qrcode.ts",
     "vitest.config.*",
     "cypress.config.*",
     "nightwatch.conf.*",
